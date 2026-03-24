@@ -1,2 +1,5 @@
 # CoordinateSystemSDPW
-Contains completed practical/laboratory work from the subject Development of Coordinate Systems Software (2025/2026, spring).
+Містить виконані практичні/лабораторні роботи з дисципліни "Розробка програмного забезпечення координатних систем".
+
+### Tasks:
+1. [Лабораторно-практичне заняття #1](./lab-practice-01/README.md)
