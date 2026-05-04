@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RADAR SURVEILLANCE SYSTEM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- SCANLINES + VIGNETTE overlays -->
+  <div class="overlay-scanlines"></div>
+  <div class="overlay-vignette"></div>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-main">RAD</span><span class="logo-accent">AR</span>
+      <span class="logo-sub">// SURVEILLANCE</span>
+    </div>
+    <div class="header-center">
+      <div class="header-mode">POLAR · SECTOR SCAN · MODE-A</div>
+      <div class="header-clock" id="clock">—</div>
+    </div>
+    <div class="header-status">
+      <div class="ws-indicator" id="ws-indicator">
+        <span class="ws-dot" id="ws-dot"></span>
+        <span id="ws-label">OFFLINE</span>
+      </div>
+      <div class="conn-badge" id="conn-badge">DISCONNECTED</div>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="app-main">
+
+    <!-- LEFT PANEL -->
+    <aside class="panel panel-left">
+      <div class="panel-title">// SYSTEM STATUS</div>
+
+      <div class="card">
+        <div class="card-label">Live Metrics</div>
+        <div class="metric-row">
+          <span class="metric-key">SCAN ANGLE</span>
+          <span class="metric-val" id="m-angle">—°</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">PULSE DURATION</span>
+          <span class="metric-val accent-amber" id="m-pulse">— μs</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">TARGETS / SCAN</span>
+          <span class="metric-val accent-light" id="m-targets">0</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">TOTAL TRACKS</span>
+          <span class="metric-val" id="m-total">0</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Active Config</div>
+        <div class="metric-row">
+          <span class="metric-key">MEAS / ROT</span>
+          <span class="metric-val" id="cfg-mpr">360</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">ROT SPEED</span>
+          <span class="metric-val accent-amber" id="cfg-rs">60 rpm</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">TGT SPEED</span>
+          <span class="metric-val accent-light" id="cfg-ts">100 km/h</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-key">ZONE SIZE</span>
+          <span class="metric-val" id="cfg-zone">200 km</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Signal Color Scale</div>
+        <div class="power-gradient-bar"></div>
+        <div class="power-gradient-labels">
+          <span>0.0 — WEAK</span>
+          <span>1.0 — STRONG</span>
+        </div>
+        <div class="power-gradient-colors">
+          <span style="color:#ffffff">#fff</span>
+          <span style="color:#ff7f7f">mid</span>
+          <span style="color:#ff0000">#f00</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">WebSocket Host</div>
+        <input class="field" type="text" id="ws-host" value="localhost:4000" placeholder="host:port">
+        <button class="btn btn-primary" id="btn-connect" onclick="window.wsModule.toggle()">CONNECT</button>
+      </div>
+
+      <div class="card demo-card">
+        <div class="card-label">Demo Mode</div>
+        <button class="btn btn-ghost" id="btn-demo" onclick="window.app.toggleDemo()">▶ START DEMO</button>
+      </div>
+    </aside>
+
+    <!-- CENTER: RADAR -->
+    <section class="radar-viewport">
+      <div class="radar-label-top">SECTOR SCAN · POLAR DISPLAY</div>
+      <div id="radar-chart"></div>
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <aside class="panel panel-right">
+      <div class="panel-title">// RADAR CONFIG</div>
+
+      <div class="card">
+        <div class="card-label">Radar Parameters</div>
+
+        <div class="field-group">
+          <label class="field-label">Measurements / Rotation</label>
+          <input class="field" type="number" id="p-mpr" value="360" min="1" max="3600">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Rotation Speed (RPM)</label>
+          <input class="field" type="number" id="p-rs" value="60" min="1" max="200">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Target Speed (km/h)</label>
+          <input class="field" type="number" id="p-ts" value="100" min="0" max="3000">
+        </div>
+
+        <button class="btn btn-apply" onclick="window.configModule.apply()">▶ APPLY CONFIG</button>
+        <div class="api-status" id="api-status"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Display Settings</div>
+
+        <div class="field-group">
+          <label class="field-label">Max Range (km)</label>
+          <input class="field" type="number" id="p-range" value="200" min="10" max="1000"
+            oninput="window.chartModule.setRange(+this.value)">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Trail Length (sweeps)</label>
+          <input class="field" type="number" id="p-trail" value="5" min="1" max="20">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Min Power Filter (0–1)</label>
+          <input class="field" type="number" id="p-minpow" value="0" min="0" max="1" step="0.01">
+        </div>
+
+        <button class="btn btn-danger" onclick="window.app.clearTracks()">⟳ CLEAR TRACKS</button>
+      </div>
+
+      <div class="card" style="flex:0 0 auto">
+        <div class="card-label">Recent Detections</div>
+        <div class="target-list" id="target-list"></div>
+      </div>
+
+      <div class="card log-card">
+        <div class="card-label">System Log</div>
+        <div class="log-box" id="log-box"></div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="app-footer">
+    <span>RADAR DISPLAY SYSTEM v3.0</span>
+    <span id="footer-stats">TRACKS: 0 · MSG: 0</span>
+    <span>CLASSIFIED // RESTRICTED</span>
+  </footer>
+
+  <!-- SCRIPTS (order matters) -->
+  <script src="js/ui.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/websocket.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
